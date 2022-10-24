@@ -1,0 +1,101 @@
+---
+title: "assignment 7 :  Text Mining"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Group G3_9 (Lab 3)
+
+-   Camilla Kuijper (6000118)
+-   Nikolas Anova (2505401)
+-   Oscar Kromhof (8170045)
+
+## Step 1: The IMDB dataset
+
+
+```{r , echo=TRUE, results='hide', message=FALSE}
+library(text2vec)
+library(tidyverse)
+library(tm)
+set.seed(7)
+
+# Reload movie_review dataset
+IMDB <- movie_review
+
+# split dataset into training (80%) and test (20%) sets
+splits <- c(rep("train", 4000), rep("test", 1000))
+IMDB_master <- IMDB %>% mutate(splits = sample(splits))
+IMDB_train <- IMDB_master %>% filter(splits == "train")
+IMDB_test <- IMDB_master %>% filter(splits == "test")
+
+```
+
+
+## Step 2: Document-term matrices
+
+```{r , echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+# Convert to Corpus
+corpus_train <- Corpus(VectorSource(IMDB_train$review))
+
+corpus_test <- Corpus(VectorSource(IMDB_test$review))
+
+#Set stopwords
+ReviewStopwords <- c(stopwords(),"film","films","movie","movies")
+
+# Document-term matrices (dtms) with TF
+IMDB_train_dtm_tf <- DocumentTermMatrix(corpus_train, control = list(stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+IMDB_test_dtm_tf <- DocumentTermMatrix(corpus_test, control = list(stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+
+# Document-term matrices (dtms) with TF-IDF
+IMDB_train_dtm_tfidf <- TermDocumentMatrix(corpus_train, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+IMDB_test_dtm_tfidf <- TermDocumentMatrix(corpus_test, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+```
+
+
+```{r, echo=TRUE }
+# Document Term Matrix with TF
+inspect(IMDB_train_dtm_tf[1:10,1:10])
+```
+
+```{r, echo=TRUE }
+# Document Term Matrix with TF IDF
+inspect(IMDB_train_dtm_tfidf[1:10,1:10])
+```
+
+## Step 3: Supervised learning: classification
+
+
+```{r , echo=TRUE, results='hide', message=FALSE}
+
+```
+
+```{r, echo=TRUE }
+
+```
+
+## Step 4: Train and compare models
+```{r, echo = TRUE}
+
+```
+
+
+```{r, echo = TRUE}
+
+```
+
+## Step 5: Report & reflect
+```{r, echo = TRUE}
+
+```
+
+
+```{r, echo = TRUE}
+
+```
+
