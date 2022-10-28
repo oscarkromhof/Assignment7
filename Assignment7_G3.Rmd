@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Step 1 and 2: The IMDB dataset, Creating Document-term matrices (DTM) TF and TF-IDF, and Spliting Train and Test
 
 
-```{r , echo=TRUE, results='hide', , warning=FALSE, message=FALSE}
+```{r , echo=TRUE, results='hide', warning=FALSE, message=FALSE}
 
 ###### Libraries, IMDB dataset, etc #########
 library(e1071)
@@ -107,7 +107,7 @@ Predict <- predict(model, newdata = df_tf_test )
 true_value = df_tf_test$sentiment
 Predict <- as.numeric(as.character(Predict))
 
-table(true = true_value, predcited = Predict)
+table(true = true_value, predicted = Predict)
 
 ```
 
@@ -142,7 +142,7 @@ Predict_B <- predict(model_B, newdata = df_tf_test )
 # Show table comparison between true value and prediction
 Predict_B <- as.numeric(as.character(Predict_B))
 
-table(true = true_value, predcited = Predict_B)
+table(true = true_value, predicted = Predict_B)
 
 ```
 
@@ -181,7 +181,7 @@ true_value = df_tfidf_test$sentiment
 
 Predict_S_tfidf <- as.numeric(as.character(Predict_S_tfidf))
 
-table(true = true_value, predcited = Predict_S_tfidf)
+table(true = true_value, predicted = Predict_S_tfidf)
 
 ```
 
@@ -218,7 +218,7 @@ Predict_B_tfidf <- predict(model_B_tfidf, newdata = df_tfidf_test)
 
 Predict_B_tfidf <- as.numeric(as.character(Predict_B_tfidf))
 
-table(true = true_value, predcited = Predict_B_tfidf)
+table(true = true_value, predicted = Predict_B_tfidf)
 
 ```
 
