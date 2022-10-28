@@ -2,6 +2,7 @@ library(text2vec)
 library(tidyverse)
 library(tm)
 library(pROC)
+library(Metrics)
 options(expressions = 5e5)
 
 set.seed(7)
@@ -34,42 +35,83 @@ df_tf_train <- df_tf_train[,1:ncol(df_tf_train)-1]
 df_tf_test <- df_tf_master %>% filter(splits == "test")
 
 df_tf_test <- df_tf_test[,1:ncol(df_tf_test)-1]
-
-model <- svm(sentiment ~., data = df_tf_train)
+################## svm ###############################
+model <- svm(sentiment ~., data = df_tf_train, type = 'C')
 
 Predict <- predict(model, newdata = df_tf_test )
-pred_svm <- factor(Predict >.5, label = c(0,1))
-
 true_value = df_tf_test$sentiment
-table(true = true_value, predcited = pred_svm)
-
-# Step 2:
-
-# Convert to Corpus
-corpus_train <- Corpus(VectorSource(IMDB_train$review))
-corpus_test <- Corpus(VectorSource(IMDB_test$review))
-
-#Set stopwords
 
 
-#Set bounds
+Predict <- as.numeric(as.character(Predict))
+auc_svm <- roc(Predict,true_value)$auc
+RMSE <- rmse(Predict, true_value)
+RMSE
 
-# Document-term matrices (dtms) with TF
-IMDB_train_dtm_tf <- DocumentTermMatrix(corpus_train, control = list(bounds = Bounds, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
-IMDB_test_dtm_tf <- DocumentTermMatrix(corpus_test, control = list(stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+table(true = true_value, predcited = Predict)
+
+########################## Bayes ###########################
+
+model_B <- naiveBayes(sentiment ~., data = df_tf_train)
+Predict_B <- predict(model_B, newdata = df_tf_test )
+
+Predict_B <- as.numeric(as.character(Predict_B))
+RMSE_B <- rmse(Predict_B, true_value)
+
+roc_B <- roc(Predict_B, true_value)
+auc_B <- roc_B$auc
+
+table(true = true_value, predcited = Predict)
 
 
-# Document-term matrices (dtms) with TF-IDF
-IMDB_train_dtm_tfidf <- TermDocumentMatrix(corpus_train, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
-IMDB_test_dtm_tfidf <- TermDocumentMatrix(corpus_test, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+###############################df_idf#######################
+Bound_idf = Bounds <- list(global = c(100,Inf))
 
-#Transforming The TermDocumentMatrix back to a DATA-FRAME
-df_train_tf <- data.frame(as.matrix(IMDB_train_dtm_tf))
+IMDB_dtm_tfidf <-  DocumentTermMatrix(corpus, control = list(bounds = Bounds, weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T)) 
 
-#Adding back the given sentiment of the data as a final column.
-df_train_tf <- df_train_tf %>% mutate(sentiment = IMDB_train$sentiment)
 
-#Training a support vector machine on all the variables (terms) but it we get an overflow error.
-model <- svm(sentiment ~., data = df_train_tf)
-prediction <- predict(model)
+df_tfidf <- data.frame(as.matrix(IMDB_dtm_tfidf))
+
+df_tfidf <- df_tfidf %>% mutate(sentiment = IMDB$sentiment)
+
+splits <- c(rep("train", 4000), rep("test", 1000))
+df_tfidf_master <- df_tfidf %>% mutate(splits = sample(splits))
+
+df_tfidf_train <- df_tfidf_master %>% filter(splits == "train")
+
+df_tfidf_train <- df_tfidf_train[,1:ncol(df_tfidf_train)-1]
+
+df_tfidf_test <- df_tfidf_master %>% filter(splits == "test")
+
+df_tfidf_test <- df_tfidf_test[,1:ncol(df_tfidf_test)-1]
+
+
+#########svm#######################
+model_S_tfidf <- svm(sentiment ~., data = df_tfidf_train, type = 'C')
+
+Predict_S_tfidf <- predict(model_S_tfidf, newdata = df_tfidf_test )
+true_value = df_tfidf_test$sentiment
+
+
+Predict_S_tfidf <- as.numeric(as.character(Predict_S_tfidf))
+
+roc(Predict_S_tfidf,true_value)
+RMSE = rmse(Predict_S_tfidf, true_value)
+auc_S_idf = roc(Predict_S_tfidf,true_value)$auc
+
+table(true = true_value, predcited = Predict_S_tfidf)
+########## Bayes ###########
+
+model_B_tfidf <- naiveBayes(sentiment ~., data = df_tfidf_train)
+Predict_B_tfidf <- predict(model_B_tfidf, newdata = df_tfidf_test)
+
+Predict_B_tfidf <- as.numeric(as.character(Predict_B_tfidf))
+RMSE_B_tfidf = rmse(Predict_B_tfidf, true_value)
+
+roc_B_tfidf <- roc(Predict_B_tfidf, true_value)
+auc_B_tfidf <- roc_B_tfidf$auc
+
+table(true = true_value, predcited = Predict_B_tfidf)
+
+
+
 
