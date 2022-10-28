@@ -24,6 +24,7 @@ library(tidyverse)
 library(tm)
 library(pROC)
 library(Metrics)
+library(e1071)
 options(expressions = 5e5)
 
 # Reload movie_review dataset
