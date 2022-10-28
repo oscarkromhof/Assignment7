@@ -1,0 +1,75 @@
+library(text2vec)
+library(tidyverse)
+library(tm)
+library(pROC)
+options(expressions = 5e5)
+
+set.seed(7)
+
+# Step 1:
+
+# Reload movie_review dataset
+IMDB <- movie_review
+
+corpus <- Corpus(VectorSource(IMDB$review))
+
+#set bounds
+Bounds <- list(global = c(100,Inf))
+#set stopwords
+ReviewStopwords <- c(stopwords(),"film","films","movie","movies")
+
+IMDB_dtm_tf <- DocumentTermMatrix(corpus, control = list(bounds = Bounds, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+df_tf <- data.frame(as.matrix(IMDB_dtm_tf))
+
+df_tf <- df_tf %>% mutate(sentiment = IMDB$sentiment)
+
+splits <- c(rep("train", 4000), rep("test", 1000))
+df_tf_master <- df_tf %>% mutate(splits = sample(splits))
+
+df_tf_train <- df_tf_master %>% filter(splits == "train")
+
+df_tf_train <- df_tf_train[,1:ncol(df_tf_train)-1]
+  
+df_tf_test <- df_tf_master %>% filter(splits == "test")
+
+df_tf_test <- df_tf_test[,1:ncol(df_tf_test)-1]
+
+model <- svm(sentiment ~., data = df_tf_train)
+
+Predict <- predict(model, newdata = df_tf_test )
+pred_svm <- factor(Predict >.5, label = c(0,1))
+
+true_value = df_tf_test$sentiment
+table(true = true_value, predcited = pred_svm)
+
+# Step 2:
+
+# Convert to Corpus
+corpus_train <- Corpus(VectorSource(IMDB_train$review))
+corpus_test <- Corpus(VectorSource(IMDB_test$review))
+
+#Set stopwords
+
+
+#Set bounds
+
+# Document-term matrices (dtms) with TF
+IMDB_train_dtm_tf <- DocumentTermMatrix(corpus_train, control = list(bounds = Bounds, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+IMDB_test_dtm_tf <- DocumentTermMatrix(corpus_test, control = list(stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+
+# Document-term matrices (dtms) with TF-IDF
+IMDB_train_dtm_tfidf <- TermDocumentMatrix(corpus_train, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+IMDB_test_dtm_tfidf <- TermDocumentMatrix(corpus_test, control = list(weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+#Transforming The TermDocumentMatrix back to a DATA-FRAME
+df_train_tf <- data.frame(as.matrix(IMDB_train_dtm_tf))
+
+#Adding back the given sentiment of the data as a final column.
+df_train_tf <- df_train_tf %>% mutate(sentiment = IMDB_train$sentiment)
+
+#Training a support vector machine on all the variables (terms) but it we get an overflow error.
+model <- svm(sentiment ~., data = df_train_tf)
+prediction <- predict(model)
+
