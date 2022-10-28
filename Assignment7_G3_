@@ -1,0 +1,266 @@
+---
+title: "assignment 7 :  Text Mining"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Group G3_9 (Lab 3) WARNING Executing the Rmd file might take a while (approx 3 mins on our machine) if you don't want to wait for this one could look just at the HTML file.
+
+-   Camilla Kuijper (6000118)
+-   Nikolas Anova (2505401)
+-   Oscar Kromhof (8170045)
+
+## Step 1 and 2: The IMDB dataset, Creating Document-term matrices (DTM) TF and TF-IDF, and Spliting Train and Test
+
+
+```{r , echo=TRUE, results='hide', message=FALSE}
+
+###### Libraries, IMDB dataset, etc #########
+library(e1071)
+library(text2vec)
+library(tidyverse)
+library(tm)
+library(pROC)
+library(Metrics)
+options(expressions = 5e5)
+
+# Reload movie_review dataset
+IMDB <- movie_review
+
+# Make Corpus from IMDB Review
+corpus <- Corpus(VectorSource(IMDB$review))
+
+# Set bounds
+Bounds <- list(global = c(100,Inf))
+
+# Set stopwords
+ReviewStopwords <- c(stopwords(),"film","films","movie","movies")
+
+################ TF #########################
+
+# Creating DTM TF and Preprocessing Texts
+IMDB_dtm_tf <- DocumentTermMatrix(corpus, control = list(bounds = Bounds, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T))
+
+# Converting DTM TF as input for model
+df_tf <- data.frame(as.matrix(IMDB_dtm_tf))
+df_tf <- df_tf %>% mutate(sentiment = IMDB$sentiment)
+
+# Splitting TF into train and test
+splits <- c(rep("train", 4000), rep("test", 1000))
+df_tf_master <- df_tf %>% mutate(splits = sample(splits))
+
+# Train for TF
+df_tf_train <- df_tf_master %>% filter(splits == "train")
+df_tf_train <- df_tf_train[,1:ncol(df_tf_train)-1]
+
+# Test for TF
+df_tf_test <- df_tf_master %>% filter(splits == "test")
+df_tf_test <- df_tf_test[,1:ncol(df_tf_test)-1]
+
+
+################ TF-IDF #####################
+
+# Creating DTM TF-IDF and Preprocessing Texts
+IMDB_dtm_tfidf <-  DocumentTermMatrix(corpus, control = list(bounds = Bounds, weighting = weightTfIdf, stopwords = ReviewStopwords, removePunctuation = T, removeNumbers = T, stemming = T)) 
+
+# Converting DTM TF-IDF as input for model
+df_tfidf <- data.frame(as.matrix(IMDB_dtm_tfidf))
+df_tfidf <- df_tfidf %>% mutate(sentiment = IMDB$sentiment)
+
+# Splitting TF-IDF into train and test
+splits <- c(rep("train", 4000), rep("test", 1000))
+df_tfidf_master <- df_tfidf %>% mutate(splits = sample(splits))
+
+# Train for TF-IDF
+df_tfidf_train <- df_tfidf_master %>% filter(splits == "train")
+df_tfidf_train <- df_tfidf_train[,1:ncol(df_tfidf_train)-1]
+
+# Test for TF-IDF
+df_tfidf_test <- df_tfidf_master %>% filter(splits == "test")
+df_tfidf_test <- df_tfidf_test[,1:ncol(df_tfidf_test)-1]
+
+
+```
+
+
+## Step 3 and 4: Choose 2 Classification tools; Train and Compare models 
+
+```{r , echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+# We choose Support Vector Machines (SVM) and Naïve Bayes  for classification tools
+
+################## TF for SVM ###############################
+
+# Train Model
+model <- svm(sentiment ~., data = df_tf_train, type = 'C')
+
+# Predict test
+Predict <- predict(model, newdata = df_tf_test )
+
+```
+
+
+```{r, echo=TRUE }
+# Show table comparison between true value and prediction
+true_value = df_tf_test$sentiment
+Predict <- as.numeric(as.character(Predict))
+
+table(true = true_value, predcited = Predict)
+
+```
+
+
+```{r, echo=TRUE }
+# Calculate AUC 
+auc_s <- roc(Predict,true_value)$auc
+auc_s
+
+```
+
+```{r, echo=TRUE }
+# Calculate Loss values
+RMSE_s <- rmse(Predict, true_value)
+RMSE_s
+```
+
+
+```{r , echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+
+################## TF for Bayes ###############################
+
+# Train Model
+model_B <- naiveBayes(sentiment ~., data = df_tf_train)
+# Predict test
+Predict_B <- predict(model_B, newdata = df_tf_test )
+
+```
+
+
+```{r, echo=TRUE }
+# Show table comparison between true value and prediction
+Predict_B <- as.numeric(as.character(Predict_B))
+
+table(true = true_value, predcited = Predict_B)
+
+```
+
+
+```{r, echo=TRUE }
+# Calculate AUC 
+roc_B <- roc(Predict_B, true_value)
+auc_B <- roc_B$auc
+auc_B
+```
+
+```{r, echo=TRUE }
+# Calculate Loss values
+RMSE_B <- rmse(Predict_B, true_value)
+
+RMSE_B
+```
+
+
+```{r , echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+
+################## TF-IDF for SVM ###############################
+
+# Train Model
+model_S_tfidf <- svm(sentiment ~., data = df_tfidf_train, type = 'C')
+
+# Predict test
+Predict_S_tfidf <- predict(model_S_tfidf, newdata = df_tfidf_test )
+
+```
+
+
+```{r, echo=TRUE }
+# Show table comparison between true value and prediction
+true_value = df_tfidf_test$sentiment
+
+Predict_S_tfidf <- as.numeric(as.character(Predict_S_tfidf))
+
+table(true = true_value, predcited = Predict_S_tfidf)
+
+```
+
+
+```{r, echo=TRUE }
+# Calculate AUC 
+auc_S_idf = roc(Predict_S_tfidf,true_value)$auc
+auc_S_idf
+```
+
+```{r, echo=TRUE }
+# Calculate Loss values
+RMSE_S_idf = rmse(Predict_S_tfidf, true_value)
+
+RMSE_S_idf
+```
+
+
+```{r , echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+
+################## TF-IDF for Bayes ###############################
+
+# Train Model
+model_B_tfidf <- naiveBayes(sentiment ~., data = df_tfidf_train)
+
+# Predict test
+Predict_B_tfidf <- predict(model_B_tfidf, newdata = df_tfidf_test)
+
+```
+
+
+```{r, echo=TRUE }
+# Show table comparison between true value and prediction
+
+Predict_B_tfidf <- as.numeric(as.character(Predict_B_tfidf))
+
+table(true = true_value, predcited = Predict_B_tfidf)
+
+```
+
+
+```{r, echo=TRUE }
+# Calculate AUC 
+roc_B_tfidf <- roc(Predict_B_tfidf, true_value)
+auc_B_tfidf <- roc_B_tfidf$auc
+
+auc_B_tfidf
+```
+
+```{r, echo=TRUE }
+# Calculate Loss values
+RMSE_B_tfidf = rmse(Predict_B_tfidf, true_value)
+RMSE_B_tfidf
+```
+
+
+
+## Step 5: Report & reflect
+
+Comparison for SVM Model
+```{r, echo = TRUE}
+BoW <- c("TF", "TF-IDF")
+AUC_SVM <- c(auc_s, auc_S_idf)
+LossValue_SVM <- c(RMSE_s, RMSE_S_idf)
+
+svm_comp <- data.frame(BoW, AUC_SVM, LossValue_SVM)
+
+print (svm_comp)
+
+```
+
+Comparison for Bayes Model
+```{r, echo = TRUE}
+AUC_Bayes <- c(auc_B, auc_B_tfidf)
+LossValue_Bayes <- c(RMSE_B, RMSE_B_tfidf)
+
+bayes_comp <- data.frame(BoW, AUC_Bayes, LossValue_Bayes)
+
+print (bayes_comp)
+
+```
+We note that in all cases the values for the AUC (>0.5). It is also the case that the SVM-method outperforms the NaiveBayes method by both metrics (AUC, and LossValue). We also get the result that the TF-IDF method for constructing the DTM matrix gives better estimates. So the results seem to be consistent with expected results.
