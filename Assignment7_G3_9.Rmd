@@ -142,7 +142,7 @@ Predict_B <- predict(model_B, newdata = df_tf_test )
 # Show table comparison between true value and prediction
 Predict_B <- as.numeric(as.character(Predict_B))
 
-table(true = true_value, predcited = Predict)
+table(true = true_value, predcited = Predict_B)
 
 ```
 
